@@ -1,7 +1,7 @@
 
 Download elasticsearch https://www.elastic.co/downloads/elasticsearch
 
-$​ ​ apt-get​ ​ install​ ​ ~/Downloads/elasticsearch-5.6.4.deb
+$​ ​ apt-get​ ​ install​ ​ elasticsearch-5.6.4.deb
 
 $​ ​ systemctl​ ​ enable​ ​ elasticsearch
 
