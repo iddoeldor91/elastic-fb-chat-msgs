@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        /* General */
+        html, body, div, span, header, h1, h2, input, main, section, button, p {
+            border: 0;
+            font: inherit;
+            vertical-align: baseline;
+            margin: 0;
+            padding: 0
+        }
+
+        article, section {
+            display: block
+        }
+
+        ol, ul {
+            list-style: none
+        }
+
+        body {
+            line-height: 1;
+            direction: rtl;
+            font-family: "Arial";
+            background-color: #ecf0f1;
+        }
+
+        /* Header */
+        .jumbotron {
+            height: 190px;
+            width: 100%;
+            background-color: #355C93;
+        }
+
+        .title {
+            font-size: 40px;
+            color: white;
+            text-align: center;
+            padding-top: 40px;
+        }
+
+        .search-select {
+            height: 100%;
+            color: #000;
+            background-color: #fff;
+            font-size: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+            outline: 0;
+            border-radius: 5px;
+            border: 4px solid #ECF0F4;
+        }
+
+        .search-box-container {
+            width: 860px;
+            height: 69px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+
+        #searchBox {
+            width: 520px;
+            height: 100%;
+            color: #000;
+            background-color: #fff;
+            font-size: 30px;
+            padding-left: 20px;
+            padding-right: 20px;
+            outline: 0;
+            border-radius: 5px;
+            border: 4px solid #ECF0F4;
+        }
+
+        /* Search Box Placeholder text */
+        ::-webkit-input-placeholder {
+            color: #999;
+        }
+
+        :-moz-placeholder {
+            color: #ecf0f1;
+        }
+
+        ::-moz-placeholder {
+            color: #ecf0f1;
+        }
+
+        :-ms-input-placeholder {
+            color: #ecf0f1;
+        }
+
+        /* Results */
+        .results-container {
+            height: 100%;
+            width: 100%;
+            padding-top: 30px;
+            padding-bottom: 30px;
+        }
+
+        .no-results {
+            text-align: center;
+            font-size: 25px;
+            padding: 10px;
+        }
+
+        .pagination-range-picker {
+            text-align: center;
+        }
+
+        .results-info {
+            width: 860px;
+            height: 30px;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 1%;
+        }
+
+        #pagination-details {
+            float: left;
+        }
+
+        .results {
+            width: 860px;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #fff;
+            border-radius: 5px;
+        }
+
+        .pagination-controls {
+            width: 860px;
+            height: 30px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+
+        .pager {
+            height: 30px;
+            width: 75px;
+            border-radius: 25px;
+            background-color: #4080ff;
+            border: none;
+            color: #fff;
+            margin: 5px;
+        }
+
+        .pager:hover {
+            cursor: pointer;
+            background-color: #243365;
+        }
+
+        .pager:focus {
+            outline: 0;
+        }
+
+        .result {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-bottom: 10px solid #ecf0f1;
+        }
+
+        .result h2 {
+            font-size: 20px;
+            color: #4080ff;
+            margin-bottom: 5px;
+        }
+
+        /* ng-repeat animation */
+        .result.ng-enter,
+        .result.ng-leave,
+        .result.ng-move {
+            -webkit-transition: .5s linear all;
+            transition: .5s linear all;
+            position: relative;
+        }
+
+        .result.ng-enter {
+            left: -10px;
+            opacity: 0;
+        }
+
+        .result.ng-enter.ng-enter-active {
+            left: 0;
+            opacity: 1;
+        }
+
+        .result.ng-leave {
+            left: 0;
+            opacity: 1;
+        }
+
+        .result.ng-leave.ng-leave-active {
+            left: -10px;
+            opacity: 0;
+        }
+        .small-text {
+            font-size: x-small;
+            color: black;
+        }
+    </style>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.9/angular.min.js' type='text/javascript'></script>
+</head>
+<body ng-app='app' ng-controller='appCtrl'>
+<!-- search box -->
+<header class='jumbotron'>
+    <h1 class='title'>חיפוש אלסטי</h1>
+    <div class='search-box-container'>
+        <input type='text' id='searchBox' placeholder='{{searchPlaceholder}}'
+               ng-model='query' ng-change='delayedSearch(0)' ng-disabled='!searchTypeSelect' />
+        <select class='search-select' ng-model='searchTypeSelect' autofocus ng-change='updatePlaceholder()'>
+            <option value=''>--- נא לבחור סוג חיפוש ---</option>
+            <option value='1'>חיפוש חופשי</option>
+            <option value='2'>הודעות משתמש</option>
+            <option value='3'>רשימת צאטים</option>
+        </select>
+    </div>
+</header>
+<!-- results -->
+<main class='results-container' ng-cloak>
+    <section class='results-info'>
+        <p ng-show='results.length'>{{(hits | number) || 0}} {{resultsLabel}} ({{(timeTook || 0)}}מילישניות)</p>
+        <p ng-show='paginationEnabled() && results.length' id='pagination-details'>
+            <span>מראה תוצאות </span>
+            {{paginationLowerBound}} - {{paginationUpperBound}}
+        </p>
+    </section>
+    <section class='results'>
+        <p class='no-results' ng-show='!results.length && !loading'>אין תוצאות</p>
+        <div ng-if='results.length'>
+            <!-- user's chat list view -->
+            <article ng-if='searchTypeSelect == 3' class='result' ng-repeat='result in results track by $id(result)'>
+                <h1>{{result.key}}<span style='float: left;'>( {{result.doc_count}} הודעות נשלחו )</span></h1>
+            </article>
+            <!-- free or user's messages search view -->
+            <article ng-if='searchTypeSelect != 3' class='result' ng-repeat='result in results track by $id(result)'>
+                <h2>
+                    <span style='color: black'>שולח : </span>
+                    <span class='small-text'>{{result.sender_id}}</span>
+                    {{result.sender}}
+                </h2>
+                <h2>
+                    <span style='color: black'>מקבל : </span>
+                    <span class='small-text'>{{result.receiver_id}}</span>
+                    {{result.receiver}}
+                </h2>
+                <h2><span style='color: black'>זמן שליחה : </span>{{result.timestamp}}</h2>
+                <p>{{result.text}}</p>
+            </article>
+        </div>
+        <p class='pagination-range-picker'>
+            <span>{{resultsPerPage}}</span><span> תוצאות לעמוד </span><br />
+            <input type='range' min='1' value='4' max='25' ng-model='resultsPerPage' />
+        </p>
+    </section>
+    <section class='pagination-controls' ng-show='results.length'>
+        <button ng-click='search(-1)' ng-show='paginationEnabled() && offset !== 0' class='pager'>הקודם</button>
+        <button ng-click='search(1)' ng-show='paginationEnabled()' class='pager'>הבא</button>
+    </section>
+</main>
+
+<!-- Resources -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.2.9/angular-animate.js' type='text/javascript'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/elasticsearch/13.3.1/elasticsearch.angular.js' type='text/javascript'></script>
+<script type='text/javascript'>
+    /* Module */
+    window.App = angular.module('app', ['elasticsearch', 'ngAnimate'], ['$locationProvider', function($locationProvider) {
+        $locationProvider.html5Mode(true);
+    }]);
+
+    /* Config  */
+    App.constant('Config', {
+        url: 'http://localhost:9200', // elasticsearch cluster http url
+        indexName: 'messages', // index name or comma-separated list
+        type: 'msg',
+        size: 4, // number of results to display at a time when pagination is enabled.
+        searchDelay: 500 // delay between actual search request in ms in order to reduce number of queries to cluster by not making a request on each keystroke.
+    });
+
+    /* App Controller
+     *
+     * On change in search box, search() will be called, and results are bind to scope as results[]
+     *
+     */
+    App.controller('appCtrl', ['appService', '$scope', '$location', 'Config', '$timeout', '$window',
+        function(elasticService, $scope, $location, Config, $timeout, $window) {
+
+            // init with defaults
+            $scope.resultsPerPage = Config.size;
+            $scope.results = [];
+            $scope.offset = 0;
+            $scope.searchPlaceholder = 'נא לבחור סוג חיפוש >';
+            // local variables
+            var paginationTriggered;
+            var searchTimeout;
+
+            $scope.delayedSearch = function(mode) {
+                if ($scope.searchTypeSelect && $scope.query.length > 0) {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(function() {
+                        $scope.search(mode)
+                    }, Config.searchDelay);
+                } else {
+                    // must select search type is handled
+                }
+            };
+
+            function _beforeSearch(m) {
+                //reinitialize array, then perform search and load results
+                $scope.results = [];
+                $scope.offset = m == 0 ? 0 : $scope.offset; //Clear offset if new query
+                $scope.loading = m != 0; //Reset loading flag if new query
+                // handling pagination
+                if (m == -1 && paginationTriggered)
+                    if ($scope.offset - $scope.resultsPerPage >= 0)
+                        $scope.offset -= $scope.resultsPerPage;
+                if (m == 1 && paginationTriggered)
+                    $scope.offset += $scope.resultsPerPage;
+                $scope.paginationLowerBound = $scope.offset + 1;
+                $scope.paginationUpperBound = ($scope.offset == 0) ? $scope.resultsPerPage : $scope.offset + $scope.resultsPerPage;
+            }
+
+            function _loadResults(a) {
+                var numHits = a.hits.length;
+                for (var i = 0; i < numHits; i++) {
+                    $scope.results.push(a.hits[i]);
+                }
+                $scope.timeTook = a.timeTook;
+                $scope.hits = a.hitsCount;
+                $scope.resultsLabel = 'תוצאות';
+                //Check if pagination is triggered
+                paginationTriggered = $scope.hits > $scope.resultsPerPage;
+
+                //Set loading flag if pagination has been triggered
+                if (paginationTriggered) {
+                    $scope.loading = true;
+                }
+            }
+
+            $scope.search = function(m) {
+                _beforeSearch(m);
+
+                switch (parseInt($scope.searchTypeSelect)) {
+                    case 1: // free search
+                        elasticService.freeSearch($scope.query, m, $scope.offset, $scope.resultsPerPage).then(function(a) {
+                            _loadResults(a);
+                        });
+                        break;
+                    case 2: // get user's messages
+                        elasticService.getMessages($scope.query, m, $scope.offset, $scope.resultsPerPage).then(function(a) {
+                            _loadResults(a);
+                        });
+                        break;
+                    case 3: // get user's chat list
+                        elasticService.getChatList($scope.query, m, $scope.offset).then(function(a) {
+                            _loadResults(a);
+                        });
+                        break;
+                }
+            };
+
+            $scope.paginationEnabled = function() {
+                return paginationTriggered;
+            };
+
+            $scope.updatePlaceholder = function() {
+                $scope.results = [];
+                $scope.query = null;
+
+                switch (parseInt($scope.searchTypeSelect)) {
+                    case 1: // free text search
+                        $scope.searchPlaceholder = 'חיפוש טקסטואלי חופשי...';
+                        break;
+                    case 2: // user's messages
+                        $scope.searchPlaceholder = 'נא להכניס שם מלא של המשתמש';
+                        break;
+                    case 3: // user's chat list
+                        $scope.searchPlaceholder = 'נא להכניס שם מלא של המשתמש';
+                        break;
+                    default:
+                        $scope.searchPlaceholder = 'נא לבחור סוג חיפוש';
+                        break;
+                }
+
+                $timeout(function() {
+                    $window.document.getElementById('searchBox').focus();
+                });
+            };
+
+        }]);
+
+    /* Service to Elasticsearch */
+    App.factory('appService', ['$q', 'esFactory', '$location', 'Config', function($q, elasticsearch, $location, Config) {
+
+        var client = elasticsearch({ host: Config.url });
+
+        var getChatList = function(sender, mode, offset) {
+            var deferred = $q.defer();
+            client.search({
+                'index': Config.indexName,
+                'type': Config.type,
+                'body': {
+                    'query': {
+                        'bool': {
+                            'must': [
+                                {
+                                    'match': {
+                                        'sender': sender
+                                    }
+                                },
+                                { // get results from last 30 days
+                                    'range': {
+                                        'timestamp': {
+                                            'gte': 'now-30d'
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    'size': 0,
+                    'aggs': {
+                        'distinct_receivers': {
+                            'terms': {
+                                'field': 'receiver.keyword',
+                                'order': {
+                                    '_count': 'desc'
+                                }
+                            }
+                        }
+                    }
+                }
+            }).then(function(result) {
+                var i = 0, hitsIn, hitsOut = [];
+                hitsIn = result['aggregations']['distinct_receivers']['buckets'] || [];
+                for (; i < hitsIn.length; i++) {
+                    hitsOut.push(hitsIn[i]);
+                }
+                deferred.resolve({
+                    timeTook: result.took,
+                    hitsCount: hitsIn.length,
+                    hits: hitsOut
+                });
+            }, deferred.reject);
+
+            return deferred.promise;
+        };
+
+        function parseResults(result, deferred) {
+            var i = 0,
+                    hitsIn, hitsOut = [],
+                    source;
+            hitsIn = (result.hits || {}).hits || [];
+            for (; i < hitsIn.length; i++) {
+                source = hitsIn[i]._source;
+                source._id = hitsIn[i]._id;
+                source._index = hitsIn[i]._index;
+                source._type = hitsIn[i]._type;
+                source._score = hitsIn[i]._score;
+                hitsOut.push(source);
+            }
+            deferred.resolve({
+                timeTook: result.took,
+                hitsCount: result.hits.total,
+                hits: hitsOut
+            });
+        }
+
+        var freeSearch = function(query, mode, offset, size) {
+            var deferred = $q.defer();
+
+            if (query.length == 0) {
+                deferred.resolve({
+                    timeTook: 0,
+                    hitsCount: 0,
+                    hits: []
+                });
+                return deferred.promise;
+            }
+            client.search({
+                'index': Config.indexName,
+                'type': Config.type,
+                'body': {
+                    'size': size,
+                    'from': offset,
+                    'query': {
+                        'query_string': {
+                            'query': query
+                        }
+                    },
+                    'sort': [{
+                        'timestamp': {
+                            'order': 'desc'
+                        }
+                    }]
+                }
+            }).then(function(result) {
+                parseResults(result, deferred);
+            }, deferred.reject);
+
+            return deferred.promise;
+        };
+
+        var getMessages = function(sender, mode, offset, size) {
+            var deferred = $q.defer();
+            client.search({
+                'index': Config.indexName,
+                'type': Config.type,
+                'body': {
+                    'size': size,
+                    'from': offset,
+                    'query': {
+                        'match': {
+                            'sender': sender
+                        }
+                    },
+                    'sort': [{
+                        'timestamp': {
+                            'order': 'desc'
+                        }
+                    }]
+                }
+            }).then(function(result) {
+                parseResults(result, deferred);
+            }, deferred.reject);
+
+            return deferred.promise;
+        };
+        // exposed functions
+        return {
+            'freeSearch': freeSearch,
+            'getMessages': getMessages,
+            'getChatList': getChatList
+        };
+
+    }]);
+</script>
+</body>
+</html>
